@@ -1,9 +1,90 @@
-import React from 'react'
+import React, { useState } from "react";
+import { ArrowLeft, Filter } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSelector } from "react-redux";
+import ListingCard from "../components/ListingCard";
+import FilterSidebar from "../components/FilterSidebar";
 
 const Marketplace = () => {
-  return (
-    <div>Marketplace</div>
-  )
-}
+  const navigate = useNavigate();
+  const [showFilterPhone, setShowFilterPhone] = useState(false);
+  const [filters, setFilters] = useState({
+    platform: null,
+    maxPrice: 100000,
+    minFollowers: 0,
+    niche: null,
+    verified: false,
+    monetized: false,
+  });
+  const [searchParams] = useSearchParams();
+  const search = searchParams.get("search");
+  const { listings } = useSelector((state) => state.listing);
+  const filteredListings = listings.filter((listing) => {
+    if (filters.platform && filters.platform.length > 0) {
+      if (!filters.platform.includes(listing.platform)) return false;
+    }
+    if (filters.maxPrice) {
+      if (listing.price > filters.maxPrice) return false;
+    }
+    if (filters.minFollowers) {
+      if (listing.followers_count < filters.minFollowers) return false;
+    }
+    if (filters.niche && filters.niche.length > 0) {
+      if (!filters.niche.includes(listing.niche)) return false;
+    }
+    if (filters.verified && listing.verified !== filters.verified) return false;
+    if (filters.monetized && listing.monetized !== filters.monetized)
+      return false;
+    if (search) {
+      const trimed = search.trim();
+      if (
+        !listing.title.toLowerCase().includes(trimed.toLocaleLowerCase()) &&
+        !listing.username.toLowerCase().includes(trimed.toLocaleLowerCase()) &&
+        !listing.description
+          .toLowerCase()
+          .includes(trimed.toLocaleLowerCase()) &&
+        !listing.platform.toLowerCase().includes(trimed.toLocaleLowerCase()) &&
+        !listing.niche.toLowerCase().includes(trimed.toLocaleLowerCase())
+      )
+        return false;
+    }
 
-export default Marketplace
+    return true;
+  });
+
+  return (
+    <div className="px-6 md:px-16 lg:px-24 xl:px-32">
+      <div className="flex items-center justify-between text-slate-500">
+        <button
+          className="flex items-center gap-2 py-5"
+          onClick={() => navigate("/")}
+        >
+          <ArrowLeft className="size-4" /> Back to Home
+        </button>
+        <button
+          onClick={() => setShowFilterPhone(true)}
+          className="flex sm:hidden items-center gap-2 py-5"
+        >
+          <Filter className="size-4" /> Filters
+        </button>
+      </div>
+      <div className="relative flex items-start justify-between gap-8 pb-8">
+        <FilterSidebar
+          setFilters={setFilters}
+          filters={filters}
+          setShowFilterPhone={setShowFilterPhone}
+          showFilterPhone={showFilterPhone}
+        />
+        <div className="flex-1 grid xl:grid-cols-2 gap-4">
+          {filteredListings
+            .sort((a, b) => (a.featured ? -1 : b.featured ? 1 : 0))
+            .map((listing, index) => (
+              <ListingCard listing={listing} key={index} />
+            ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Marketplace;
